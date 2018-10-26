@@ -1,0 +1,4 @@
+CREATE TABLE promotions (
+  id SERIAL PRIMARY KEY,
+  year INT NOT NULL
+);
