@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 case class User(
   email: User.Email,
-  student: Option[Student],
+  relatedStudent: Option[Student],
   createdAt: LocalDateTime,
   updatedAt: LocalDateTime)
 

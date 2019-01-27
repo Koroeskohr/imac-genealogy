@@ -1,8 +1,8 @@
 package com.victorviale.imacgenealogy
 
 import cats.effect.IO
-import db.{Database, DocumentDb}
-import httpServices.{DocumentsService, HelloWorldService}
+import db.{Database, StudentDb}
+import httpServices.{HelloWorldService, StudentService}
 import fs2.{Stream, StreamApp}
 import org.http4s.server.blaze.BlazeBuilder
 
@@ -21,8 +21,8 @@ object ServerStream {
       db = Database(conf.db)
       transactor <- Stream.eval(db.transactor)
       _ <- Stream.eval(db.configure(transactor))
-      documentDb = DocumentDb(transactor)
-      documentsService = new DocumentsService(documentDb).service
+      documentDb = StudentDb(transactor)
+      documentsService = new StudentService(documentDb).service
       exitCode <- BlazeBuilder[IO]
         .bindHttp(conf.server.port, conf.server.host)
         .mountService(documentsService, "/")
