@@ -4,6 +4,7 @@ package db
 import cats.effect.IO
 import com.victorviale.imacgenealogy.models.Student
 import doobie.implicits._
+
 import doobie.util.transactor.Transactor
 
 object StudentReads {
@@ -18,4 +19,7 @@ case class StudentDb(transactor: Transactor[IO]) {
       case None =>
         Left(Student.Error.NotFound)
     }
+}
+
+object StudentDb {
 }
