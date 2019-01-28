@@ -16,6 +16,7 @@ case class Database(config: DatabaseConfig) {
         val fw = new Flyway()
         fw.setDataSource(datasource)
         fw.migrate
+        ()
       }
     }
 }

@@ -13,7 +13,7 @@ class StudentService(studentDb: StudentDb) extends Http4sDsl[IO] {
   import codecs.StudentCodec._
 
   val service: HttpService[IO] = HttpService[IO] {
-    case req @ GET -> Root / "students" / IntVar(id) =>
+    case GET -> Root / "students" / IntVar(id) =>
       for {
         studentOrError <- studentDb.getById(id)
         response <- resultToResponse(studentOrError)
