@@ -1,10 +1,8 @@
 package com.victorviale.imacgenealogy
-package db
+package lib
 
-import cats.implicits._
 import cats.Foldable
 import cats.data.NonEmptyList
-import lib._
 
 object LTree {
   sealed abstract case class BranchDescriptor[A](nodes: NonEmptyList[A]) {
@@ -29,7 +27,7 @@ object LTree {
 }
 
 object BranchDescriptor {
-  import com.victorviale.imacgenealogy.db.LTree.BranchDescriptor
+  import LTree.BranchDescriptor
 
   def parse[A](str: String)(f: String => A): Either[LTree.Error, BranchDescriptor[A]] = {
     val nodes = str.split(".").toList
