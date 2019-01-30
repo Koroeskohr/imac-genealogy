@@ -32,7 +32,7 @@ object BranchDescriptor {
   def parse[A](str: String)(f: String => A): Either[LTree.Error, BranchDescriptor[A]] = {
     val nodes = str.split(".").toList
     nodes match {
-      case Nil =>                                         Left(LTree.DuplicateNodeInTree)
+      case Nil =>                                         Left(LTree.EmptyBranchDescription)
       case list @ h :: t if list.toSet.toList == nodes => Right(new BranchDescriptor(NonEmptyList.of(h, t: _*).map(f)) {})
       case list if list.toSet.toList != nodes =>          Left(LTree.DuplicateNodeInTree)
       case _ =>                                           Left(LTree.UnknownError)
