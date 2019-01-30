@@ -7,7 +7,6 @@ import cats.effect.IO
 import com.typesafe.config.ConfigFactory
 import com.victorviale.imacgenealogy.db.Database
 import doobie.hikari.HikariTransactor
-import org.flywaydb.core.Flyway
 import org.specs2.specification.BeforeAll
 
 trait DbSpec extends mutable.Specification with BeforeAll {
