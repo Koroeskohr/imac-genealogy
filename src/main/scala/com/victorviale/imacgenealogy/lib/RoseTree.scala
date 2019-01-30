@@ -29,6 +29,10 @@ object RoseTree {
     private def squish(xs: Stream[A]): Stream[A] =
       value #:: subForest.foldRight(xs)(_.squish(_))
 
+    def toStream: Stream[Tree[A]] = {
+      this #:: subForest.flatMap(_.toStream)
+    }
+
     /** -- | The elements of a tree in pre-order. */
     def flatten: Stream[A] = squish(Stream.empty)
 
