@@ -71,6 +71,11 @@ lazy val root = (project in file("."))
       "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
       "-Ywarn-unused:privates",            // Warn if a private member is unused.
       "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
-    )
+    ),
+    scalacOptions in (Compile, console) ~= (
+      _.filterNot(_ == "-Ywarn-unused-import")
+        .filterNot(_ == "-Xfatal-warnings")
+    ),
+    scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
   )
 
