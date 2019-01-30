@@ -50,6 +50,9 @@ object RoseTree {
     def foldLeft[B](b: B)(f: (B, A) => B): B = flatten.foldLeft(b)(f)
 
     def foldRight[B](lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] = Foldable[Stream].foldRight(flatten, lb)(f)
+
+    def find(target: A): Option[Tree[A]] = ???
+    def merge(other: Tree[A]): Tree[A] = ???
   }
 
   /** Node. */
