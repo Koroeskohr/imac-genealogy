@@ -62,9 +62,8 @@ object RoseTree {
     }
 
     implicit val treeFunctor: Functor[Tree] = new Functor[Tree] {
-      override def map[A, B](fa: Tree[A])(f: A => B): Tree[B] = fa match {
-        case Node(v, branches) => Node(f(v), branches.map(Functor[Tree].map(_)(f)))
-      }
+      override def map[A, B](fa: Tree[A])(f: A => B): Tree[B] =
+        Node(f(fa.value), fa.subForest.map(Functor[Tree].map(_)(f)))
     }
   }
 }
