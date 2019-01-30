@@ -51,6 +51,21 @@ object RoseTree {
   /** Node. */
   case class Node[A](value: A, subForest: Forest[A]) extends Tree[A]
 
+  object Tree {
+    def leaf[A](a: A) = Node(a, Stream.empty)
+    def branch[A](a: A, t: Tree[A]*) = Node(a, Stream(t: _*))
+
+    def unfold[T, R](init: T)(f: T => Option[(R, T)]): Stream[R] = f(init) match {
+      case None => Stream[R]()
+      case Some((r,v)) => r #:: unfold(v)(f)
+    }
+
+    def breadthFirstSearch[T](s: Stream[T], f: T => Stream[T]): Stream[T] = {
+      if (s.isEmpty) s
+      else s.head #:: breadthFirstSearch(s.tail append f(s.head), f)
+    }
+  }
+
   object implicits {
     implicit val treeTraverse = new Traverse[Tree] {
       override def traverse[G[_]: Applicative, A, B](fa: Tree[A])(f: A => G[B]): G[Tree[B]] =
