@@ -1,7 +1,8 @@
 package com.victorviale.imacgenealogy.lib
 
+import cats.data.NonEmptyList
 import cats.implicits._
-import cats.{Applicative, Eval, Foldable, Functor, Traverse}
+import cats.{Applicative, Eval, Foldable, Functor, Monad, Traverse}
 
 object RoseTree {
 
@@ -10,7 +11,7 @@ object RoseTree {
 
   /**
     * Simplified tree.
-    * See: http://hackage.haskell.org/package/containers-0.5.10.2/docs/src/Data-Tree.html
+    * See: http://hackage.haskell.org/package/containers-0.6.0.1/docs/Data-Tree.html
     */
   sealed abstract class Tree[A] {
     /** Root node. */
@@ -29,10 +30,6 @@ object RoseTree {
     private def squish(xs: Stream[A]): Stream[A] =
       value #:: subForest.foldRight(xs)(_.squish(_))
 
-    def toStream: Stream[Tree[A]] = {
-      this #:: subForest.flatMap(_.toStream)
-    }
-
     /** -- | The elements of a tree in pre-order. */
     def flatten: Stream[A] = squish(Stream.empty)
 
@@ -40,8 +37,13 @@ object RoseTree {
     def map[B](f: A => B): Tree[B] =
       Node(f(value), subForest.map(_.map(f)))
 
+    def flatMap[B](f: A => Tree[B]): Tree[B] = {
+      val r: Tree[B] = f(value)
+      Node(r.value, r.subForest #::: subForest.map(_.flatMap(f)))
+    }
+
     /** Traverse tree */
-    def traverse[F[_] : Applicative, B](f: A => F[B]): F[Tree[B]] =
+    def traverse[F[_]: Applicative, B](f: A => F[B]): F[Tree[B]] =
       Applicative[F].map2(
         f(value),
         Traverse[Stream].sequence(subForest.map(_.traverse(f)))
@@ -51,8 +53,29 @@ object RoseTree {
 
     def foldRight[B](lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] = Foldable[Stream].foldRight(flatten, lb)(f)
 
-    def find(target: A): Option[Tree[A]] = ???
-    def merge(other: Tree[A]): Tree[A] = ???
+    /** Evaluates every leaf. Non-terminating on endless streams */
+    def depthFirstSearch: Stream[Tree[A]] =
+      this #:: subForest.flatMap(_.depthFirstSearch)
+
+    /** Evaluates every branch layer. Non-terminating on endless streams
+      * but could have a max depth to prevent stack overflow */
+    def breadthFirstSearch: Stream[Tree[A]] = {
+      def go(s: Stream[Tree[A]]): Stream[Tree[A]] = {
+        if (s.isEmpty) s
+        else s.head #:: go(s.tail #::: s.head.subForest)
+      }
+
+      go(Stream(this))
+    }
+
+    def append(nel: NonEmptyList[Tree[A]]): Tree[A] = Node(nel.head.value, nel.tail.toStream)
+    def append(tree: Tree[A], trees: Tree[A]*): Tree[A] = append(NonEmptyList.of(tree, trees: _*))
+    def append(tree: Tree[A]): Tree[A] = append(NonEmptyList.one(tree))
+
+    def find(a: A): Option[Tree[A]] = breadthFirstSearch.find(_.value == a)
+
+    // XXX : should this return Either[(CouldNotMergeError, Tree[A]), Tree[A]] ??
+    def merge(other: Tree[A]): Tree[A] = find(other.value).map(append).getOrElse(this)
   }
 
   /** Node. */
@@ -66,15 +89,10 @@ object RoseTree {
       case None => Stream[R]()
       case Some((r,v)) => r #:: unfold(v)(f)
     }
-
-    def breadthFirstSearch[T](s: Stream[T], f: T => Stream[T]): Stream[T] = {
-      if (s.isEmpty) s
-      else s.head #:: breadthFirstSearch(s.tail append f(s.head), f)
-    }
   }
 
   object implicits {
-    implicit val treeTraverse = new Traverse[Tree] {
+    implicit val treeTraverse: Traverse[Tree] = new Traverse[Tree] {
       override def traverse[G[_]: Applicative, A, B](fa: Tree[A])(f: A => G[B]): G[Tree[B]] =
         fa.traverse(f)
 
@@ -84,8 +102,16 @@ object RoseTree {
     }
 
     implicit val treeFunctor: Functor[Tree] = new Functor[Tree] {
-      override def map[A, B](fa: Tree[A])(f: A => B): Tree[B] =
-        Node(f(fa.value), fa.subForest.map(Functor[Tree].map(_)(f)))
+      override def map[A, B](fa: Tree[A])(f: A => B): Tree[B] = fa.map(f)
+    }
+
+    implicit val treeMonad: Monad[Tree] = new Monad[Tree] {
+      override def pure[A](x: A): Tree[A] = Tree.leaf(x)
+
+      override def flatMap[A, B](fa: Tree[A])(f: A => Tree[B]): Tree[B] = fa.flatMap(f)
+
+      // welp, good run
+      override def tailRecM[A, B](a: A)(f: A => Tree[Either[A, B]]): Tree[B] = ???
     }
   }
 }
