@@ -3,6 +3,7 @@ package com.victorviale.imacgenealogy.lib
 import cats.data.NonEmptyList
 import cats.implicits._
 import cats.{Applicative, Eval, Foldable, Functor, Monad, Traverse}
+import com.victorviale.imacgenealogy.lib.RoseTree.Tree.Error.NoCommonValueError
 
 object RoseTree {
 
@@ -14,6 +15,8 @@ object RoseTree {
     * See: http://hackage.haskell.org/package/containers-0.6.0.1/docs/Data-Tree.html
     */
   sealed abstract class Tree[A] {
+    import Tree._
+
     /** Root node. */
     def value: A
 
@@ -74,8 +77,11 @@ object RoseTree {
 
     def find(a: A): Option[Tree[A]] = breadthFirstSearch.find(_.value == a)
 
-    // XXX : should this return Either[(CouldNotMergeError, Tree[A]), Tree[A]] ??
-    def merge(other: Tree[A]): Tree[A] = find(other.value).map(append).getOrElse(this)
+    def mergeOnValueLossy(other: Tree[A]): Tree[A] = find(other.value).map(append).getOrElse(this)
+
+    def mergeOnValue(other: Tree[A]): Either[MergeError, Tree[A]] = {
+      find(other.value).map(append).toRight(NoCommonValueError)
+    }
   }
 
   /** Node. */
@@ -88,6 +94,12 @@ object RoseTree {
     def unfold[T, R](init: T)(f: T => Option[(R, T)]): Stream[R] = f(init) match {
       case None => Stream[R]()
       case Some((r,v)) => r #:: unfold(v)(f)
+    }
+
+    sealed abstract class Error(val message: String) extends Exception
+    sealed abstract class MergeError(override val message: String) extends Error(message)
+    object Error {
+      final case object NoCommonValueError extends MergeError("No value could be found on `this` tree ")
     }
   }
 
