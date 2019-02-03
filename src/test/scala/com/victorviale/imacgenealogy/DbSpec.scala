@@ -46,7 +46,10 @@ trait DbSpec extends mutable.Specification with BeforeAll {
     db.configure(xa).unsafeRunSync()
   }
 
-  def inTransaction(frag: Fragment) =
-    fr"BEGIN TRANSACTION;" ++ frag ++ fr"ROLLBACK;"
+  def inTransaction[A](run: ConnectionIO[A]): IO[A] = {
+    import cats.syntax.apply._
+
+    (run <* HC.rollback).transact(xa)
+  }
 
 }

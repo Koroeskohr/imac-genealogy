@@ -1,9 +1,6 @@
 package com.victorviale.imacgenealogy
 
-import org.specs2.specification.BeforeEach
-import shapeless.{HNil, ::}
-
-class StudentsDbSpec extends DbSpec with BeforeEach {
+class StudentsDbSpec extends DbSpec {
   import doobie.implicits._
 
   val insertValue = sql"INSERT INTO students(id, full_name, promotion_id) VALUES (1, 'Victor Viale', 2017)"
@@ -11,30 +8,42 @@ class StudentsDbSpec extends DbSpec with BeforeEach {
 
   "students" >> {
     "should be insertable without a genealogy" >> {
-      val insert = insertValue.update.run.transact(xa).attempt.unsafeRunSync()
+      val insert = inTransaction(insertValue.update.run).attempt.unsafeRunSync()
       insert must not be left
     }
   }
 
   "genealogy" >> {
     "should have a default value" >> {
-      insertValue.update.run.transact(xa).attempt.unsafeRunSync()
-      val id :: _ :: _ :: gen :: HNil = selectInserted.query[Int :: String :: Int :: String :: HNil].unique.transact(xa).unsafeRunSync()
+
+      val trans = for {
+        _ <- insertValue.update.run
+        (id, _, _, gen) <- selectInserted.query[(Int, String, Int, String)].unique
+      } yield (id, gen)
+
+      val (id, gen) = inTransaction[(Int, String)](trans).unsafeRunSync()
 
       gen must_== id.toString
     }
 
     "should equal its id when not specified" >> {
-      insertValue.update.run.transact(xa).attempt.unsafeRunSync()
-      val id :: name :: pid :: gen :: HNil = selectInserted.query[Int :: String :: Int :: String :: HNil].unique.transact(xa).unsafeRunSync()
+      val trans = for {
+        _ <- insertValue.update.run
+        (id, name, pid, gen) <- selectInserted.query[(Int, String, Int, String)].unique
+      } yield (id, name, pid, gen)
+
+      val (id, name, pid, gen) = inTransaction[(Int, String, Int, String)](trans).unsafeRunSync()
 
       name must_== "Victor Viale"
       pid must_== 2017
       gen must_== id.toString
     }
+
+    "should throw if the same node is present more than once" >> {
+      val insertValueWithGenalogy = sql"INSERT INTO students(id, full_name, promotion_id, genealogy) VALUES (1, 'Victor Viale', 2017, '1.2.1')"
+      val run = inTransaction(insertValueWithGenalogy.update.run).attempt.unsafeRunSync()
+      run.pp must be left
+    }
   }
 
-  def before = {
-    sql"TRUNCATE students;".update.run.transact(xa).unsafeRunSync()
-  }
 }
