@@ -1,5 +1,4 @@
 addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.0")
 //addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.1.3")
-addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6")
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
-addCompilerPlugin("io.tryp" % "splain" % "0.3.5" cross CrossVersion.patch)
+addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")

@@ -76,6 +76,10 @@ lazy val root = (project in file("."))
       _.filterNot(_ == "-Ywarn-unused-import")
         .filterNot(_ == "-Xfatal-warnings")
     ),
-    scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
+    scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.0-M4"),
+    addCompilerPlugin("io.tryp" % "splain" % "0.3.5" cross CrossVersion.patch),
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6")
+
   )
 
