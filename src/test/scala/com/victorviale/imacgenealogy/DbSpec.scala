@@ -15,9 +15,9 @@ trait DbSpec extends mutable.Specification with BeforeAll {
 
   this.stopOnFail
 
-  val config = ConfigFactory.load("application.test")
+  private val config = ConfigFactory.load("application.test")
 
-  val dbConf: Config.DatabaseConfig = Config.DatabaseConfig(
+  private val dbConf: Config.DatabaseConfig = Config.DatabaseConfig(
     config.getString("db.driver"),
     config.getString("db.url"),
     config.getInt("db.port"),
@@ -25,17 +25,19 @@ trait DbSpec extends mutable.Specification with BeforeAll {
     config.getString("db.password")
   )
 
-  val db = Database(dbConf)
+  private val db = Database(dbConf)
 
-  val xa = HikariTransactor.newHikariTransactor[IO](
+  private val transactor = HikariTransactor.newHikariTransactor[IO](
     dbConf.driver,
     dbConf.url,
     dbConf.user,
     dbConf.password
   ).unsafeRunSync()
 
+  val xa = Transactor.after.set(transactor, HC.rollback)
+
   private def checkDbConnection: Either[SQLException, Int] =
-    sql"SELECT 1".query[Int].unique.transact(xa).attemptSql.unsafeRunSync
+    sql"SELECT 1".query[Int].unique.transact(xa).attemptSql.unsafeRunSync()
 
   def beforeAll = {
     checkDbConnection match {
@@ -43,13 +45,10 @@ trait DbSpec extends mutable.Specification with BeforeAll {
       case Right(_) => this.ok("Connection to database ok")
     }
 
-    db.configure(xa).unsafeRunSync()
+    db.configure(transactor).unsafeRunSync()
   }
 
-  def inTransaction[A](run: ConnectionIO[A]): IO[A] = {
-    import cats.syntax.apply._
-
-    (run <* HC.rollback).transact(xa)
-  }
+  def transactionally[A](run: ConnectionIO[A]): IO[A] =
+    run.transact(xa)
 
 }
